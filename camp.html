@@ -396,7 +396,7 @@ const STATIONS=[
   {n:"campfire rock",id:"7rLqruK5Eh827si9eAosdK"},
 ];
 function loadStation(i){
-  $("#spotify").src=`https://open.spotify.com/embed/playlist/${STATIONS[i].id}?utm_source=generator&theme=0`;
+  $("#spotify").src=`https://open.spotify.com/embed/playlist/${STATIONS[i].id}?utm_source=generator&theme=0&v=${Date.now()}`;
   document.querySelectorAll(".st").forEach((b,j)=>b.classList.toggle("on",j===i));
 }
 $("#stations").innerHTML=STATIONS.map((s,i)=>`<button class="st" data-i="${i}">${s.n}</button>`).join("");
