@@ -155,9 +155,6 @@ h1{
 .signpost{right:3.5%;bottom:19%;width:min(25vw,118px)}
 .bush{left:-8px;bottom:52px;width:min(32vw,150px);z-index:6}
 .mug{left:calc(57% + 54px);bottom:13.8%;width:22px}
-.stick{left:calc(57% - 132px);bottom:15%;width:104px;z-index:5;
-  transform:rotate(-7deg);transform-origin:right center;transition:transform .5s var(--ease)}
-.stick.roasting{transform:rotate(-1deg) translateX(24px)}
 .sheet-glow{filter:drop-shadow(0 0 22px rgba(215,210,235,.10))}
 
 /* ================= NOTE SPOTS ================= */
@@ -184,6 +181,7 @@ h1{
   transition:color .3s,border-color .3s,transform .2s;
 }
 .chip:active{transform:scale(.96)}
+.chip.icon{width:44px;padding:0;justify-content:center;font-size:.85rem}
 .chip.on{color:var(--rose);border-color:rgba(243,123,176,.45)}
 .toast{
   position:fixed;left:50%;bottom:24%;transform:translateX(-50%) translateY(8px);z-index:30;
@@ -464,11 +462,6 @@ body.night .moon{opacity:.55}
       <path d="M15 17 h3 a3.2 3.2 0 0 1 0 7 h-3" fill="none" stroke="#54251e" stroke-width="2.2"/>
     </svg>
 
-    <!-- MARSHMALLOW -->
-    <svg class="prop stick tappable" id="stick" viewBox="0 0 104 22" role="button" aria-label="Roast a marshmallow — press and hold">
-      <line x1="20" y1="11" x2="104" y2="17" stroke="#4a3a26" stroke-width="2.6" stroke-linecap="round"/>
-      <rect id="mallow" x="3" y="3" width="19" height="15" rx="6" fill="#f3ead8"/>
-    </svg>
   </div>
 
   <div class="firecast" aria-hidden="true"></div>
@@ -488,8 +481,9 @@ body.night .moon{opacity:.55}
 </div>
 
 <div class="bar">
-  <button class="chip" id="soundChip">♪ sounds</button>
-  <button class="chip" id="skyChip">✦ stars</button>
+  <button class="chip icon" id="soundChip" aria-label="Camp sounds on or off">♪</button>
+  <button class="chip icon" id="skyChip" aria-label="Star chart">✦</button>
+  <button class="chip" id="radioChip">radio</button>
   <button class="chip" id="nightChip">☾ goodnight</button>
 </div>
 
@@ -695,34 +689,24 @@ function setSound(on){
   if(AC.state==="suspended")AC.resume();
   master.gain.linearRampToValueAtTime(on?1:0,AC.currentTime+1.2);
   $("#soundChip").classList.toggle("on",on);
-  $("#soundChip").textContent=on?"♪ sounds on":"♪ sounds";
 }
 $("#soundChip").addEventListener("click",()=>setSound(!soundOn));
 
+/* taps — pointerup so iOS Safari fires reliably on SVG props */
+function onTap(sel,fn){
+  const el=$(sel);let sx=0,sy=0;
+  el.addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY});
+  el.addEventListener("pointerup",e=>{
+    if(Math.hypot(e.clientX-sx,e.clientY-sy)<12)fn();
+  });
+}
+
 /* stoke */
-$("#firepit").addEventListener("click",()=>{
+onTap("#firepit",()=>{
   const fp=$("#firepit");fp.classList.add("stoked");
   toast(["The fire likes you.","Nice stoke. Very outdoorsy.","+2 cozy points"][Math.floor(Math.random()*3)]);
   setTimeout(()=>fp.classList.remove("stoked"),1600);
 });
-
-/* marshmallow */
-const stick=$("#stick"),mallow=$("#mallow");
-const shades=["#f3ead8","#eBD5a4","#d9a95e","#a2622c","#452a13","#1e1206"];
-let roastT=null,roast=0;
-function startRoast(e){
-  e.preventDefault();
-  stick.classList.add("roasting");roast=0;mallow.setAttribute("fill",shades[0]);
-  roastT=setInterval(()=>{roast=Math.min(shades.length-1,roast+1);mallow.setAttribute("fill",shades[roast])},900);
-}
-function endRoast(){
-  if(!roastT)return;clearInterval(roastT);roastT=null;stick.classList.remove("roasting");
-  const msg=roast<=1?"Barely warm. Patience, camper.":roast===2?"Golden. Certified s'more material.":roast===3?"Toasty. The chocolate approves.":"Charcoal. The graham crackers file a complaint.";
-  toast(msg,3000);
-  setTimeout(()=>mallow.setAttribute("fill",shades[0]),2500);
-}
-stick.addEventListener("pointerdown",startRoast);
-addEventListener("pointerup",endRoast);addEventListener("pointercancel",endRoast);
 
 /* notes */
 document.querySelectorAll(".spot").forEach((sp,i)=>{
@@ -740,8 +724,8 @@ document.querySelectorAll(".overlay").forEach(ov=>{
   ov.addEventListener("click",e=>{if(e.target===ov||e.target.closest("[data-close]"))ov.classList.remove("open")});
 });
 addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".overlay.open,.drawer.open").forEach(el=>el.classList.remove("open"))});
-$("#bushBtn").addEventListener("click",()=>openOv("#jjOverlay"));
-$("#signpost").addEventListener("click",()=>openOv("#signOverlay"));
+onTap("#bushBtn",()=>openOv("#jjOverlay"));
+onTap("#signpost",()=>openOv("#signOverlay"));
 
 /* cinema */
 const PICKS=[
@@ -758,7 +742,7 @@ function loadPick(i){
 $("#picks").innerHTML=PICKS.map((p,i)=>`<button class="pick" data-i="${i}"><span><b>${p.t}</b><small>${p.s}</small></span><span>▶</span></button>`).join("");
 let curPick=0;
 $("#picks").addEventListener("click",e=>{const b=e.target.closest(".pick");if(b){curPick=+b.dataset.i;loadPick(curPick)}});
-$("#cinemaBtn").addEventListener("click",()=>{openOv("#cinemaOverlay");loadPick(curPick)});
+onTap("#cinemaBtn",()=>{openOv("#cinemaOverlay");loadPick(curPick)});
 $("#cinemaOverlay").addEventListener("click",e=>{if(e.target===$("#cinemaOverlay")||e.target.closest("[data-close]"))$("#cinemaFrame").src="about:blank"});
 
 /* firefly whispers */
@@ -793,10 +777,12 @@ function loadStation(i){
 }
 $("#stations").innerHTML=STATIONS.map((s,i)=>`<button class="st" data-i="${i}">${s.n}</button>`).join("");
 $("#stations").addEventListener("click",e=>{const b=e.target.closest(".st");if(b)loadStation(+b.dataset.i)});
-$("#radioBtn").addEventListener("click",()=>{
+function openRadio(){
   if(!stLoaded)loadStation(0);
   $("#drawer").classList.add("open");
-});
+}
+onTap("#radioBtn",openRadio);
+$("#radioChip").addEventListener("click",openRadio);
 $("#drawer [data-close]").addEventListener("click",()=>$("#drawer").classList.remove("open"));
 
 /* goodnight */
